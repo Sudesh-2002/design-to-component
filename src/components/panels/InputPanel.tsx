@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Wand2 } from "lucide-react";
+import { Square, Wand2 } from "lucide-react";
 import { ImageDropzone } from "@/components/panels/ImageDropzone";
 import { usePasteImage } from "@/hooks/usePasteImage";
 import { processImage, validateImageFile } from "@/lib/image";
@@ -16,6 +16,7 @@ interface InputPanelProps {
   onPromptChange: (value: string) => void;
   onImageChange: (image: ImageAttachment | null) => void;
   onGenerate: () => void;
+  onCancel: () => void;
 }
 
 export function InputPanel({
@@ -25,6 +26,7 @@ export function InputPanel({
   onPromptChange,
   onImageChange,
   onGenerate,
+  onCancel,
 }: InputPanelProps) {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,15 +94,26 @@ export function InputPanel({
         </p>
       </div>
 
-      <button
-        type="button"
-        onClick={onGenerate}
-        disabled={!canGenerate}
-        className="flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:text-neutral-500"
-      >
-        <Wand2 className="h-4 w-4" />
-        {isGenerating ? "Generating…" : "Generate component"}
-      </button>
+      {isGenerating ? (
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex items-center justify-center gap-2 rounded-lg border border-neutral-700 px-4 py-2.5 text-sm font-medium text-neutral-200 transition hover:bg-neutral-800"
+        >
+          <Square className="h-4 w-4" />
+          Stop
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onGenerate}
+          disabled={!canGenerate}
+          className="flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:text-neutral-500"
+        >
+          <Wand2 className="h-4 w-4" />
+          Generate component
+        </button>
+      )}
     </div>
   );
 }
