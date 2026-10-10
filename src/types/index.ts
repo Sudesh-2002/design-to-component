@@ -14,3 +14,8 @@ export interface ImageAttachment {
   height: number;
   sizeBytes: number;
 }
+
+export interface GenerateRequest {
+  prompt: string;
+  image?: string;
+}
