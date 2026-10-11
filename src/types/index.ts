@@ -1,9 +1,20 @@
 export type PanelId = "input" | "preview" | "code";
 
-export interface GenerationState {
-  status: "idle" | "loading" | "streaming" | "done" | "error";
-  code: string;
-  error?: string;
+export type GenerationStatus =
+  | "idle"
+  | "loading"
+  | "streaming"
+  | "done"
+  | "error";
+
+export interface CodeIssue {
+  level: "error" | "warning";
+  message: string;
+}
+
+export interface GenerateRequest {
+  prompt: string;
+  image?: string;
 }
 
 export interface ImageAttachment {
@@ -13,9 +24,4 @@ export interface ImageAttachment {
   width: number;
   height: number;
   sizeBytes: number;
-}
-
-export interface GenerateRequest {
-  prompt: string;
-  image?: string;
 }
