@@ -25,3 +25,15 @@ export interface ImageAttachment {
   height: number;
   sizeBytes: number;
 }
+
+export type PreviewToIframe = { type: "render"; id: number; code: string };
+
+export type PreviewFromIframe =
+  | { type: "ready" }
+  | { type: "rendered"; id: number }
+  | {
+      type: "error";
+      id: number;
+      phase: "load" | "compile" | "runtime";
+      message: string;
+    };

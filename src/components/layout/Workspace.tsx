@@ -3,6 +3,7 @@
 import { Panel } from "@/components/panels/Panel";
 import { InputPanel } from "@/components/panels/InputPanel";
 import { CodePanel } from "@/components/panels/CodePanel";
+import { PreviewPanel } from "@/components/panels/PreviewPanel";
 import { usePlayground } from "@/store/playground";
 
 export function Workspace() {
@@ -17,7 +18,7 @@ export function Workspace() {
   const isGenerating = status === "loading" || status === "streaming";
 
   return (
-    <main className="grid flex-1 grid-cols-1 gap-3 p-3 lg:grid-cols-[340px_1fr_1fr]">
+    <main className="grid flex-1 grid-cols-1 gap-3 p-3 lg:h-[calc(100vh-3.5rem)] lg:grid-cols-[340px_1fr_1fr] lg:grid-rows-1">
       <Panel title="Input">
         <InputPanel
           prompt={prompt}
@@ -31,9 +32,7 @@ export function Workspace() {
       </Panel>
 
       <Panel title="Preview">
-        <p className="text-sm text-neutral-500">
-          Live component preview will go here (Step 5).
-        </p>
+        <PreviewPanel />
       </Panel>
 
       <Panel title="Code">
