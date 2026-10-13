@@ -1,4 +1,6 @@
 import { Sparkles } from "lucide-react";
+import { AuthButton } from "@/components/layout/AuthButton";
+import { HistoryButton } from "@/components/layout/HistoryButton";
 
 export function Header() {
   return (
@@ -9,9 +11,13 @@ export function Header() {
           Design → Component
         </h1>
       </div>
-      <span className="rounded-full border border-neutral-800 px-2.5 py-0.5 text-xs text-neutral-400">
-        beta
-      </span>
+      <div className="flex items-center gap-2">
+        <HistoryButton />
+        <AuthButton />
+        <span className="hidden rounded-full border border-neutral-800 px-2.5 py-0.5 text-xs text-neutral-400 sm:inline">
+          beta
+        </span>
+      </div>
     </header>
   );
 }
