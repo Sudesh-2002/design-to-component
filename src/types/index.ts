@@ -37,3 +37,13 @@ export type PreviewFromIframe =
       phase: "load" | "compile" | "runtime";
       message: string;
     };
+
+export interface SavedGeneration {
+  id: string;
+  title: string;
+  prompt: string;
+  code: string;
+  thumbnail: string | null;
+  created_at: string;
+  updated_at: string;
+}

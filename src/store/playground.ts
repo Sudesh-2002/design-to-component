@@ -2,7 +2,12 @@ import { create } from "zustand";
 import { extractCode } from "@/lib/extract-code";
 import { streamGeneration } from "@/lib/generate-client";
 import { validateComponent } from "@/lib/validate-code";
-import type { CodeIssue, GenerationStatus, ImageAttachment } from "@/types";
+import type {
+  CodeIssue,
+  GenerationStatus,
+  ImageAttachment,
+  SavedGeneration,
+} from "@/types";
 
 interface PlaygroundState {
   prompt: string;
@@ -15,12 +20,16 @@ interface PlaygroundState {
   issues: CodeIssue[];
   error: string | null;
 
+  activeId: string | null;
+  savedCode: string;
+
   setPrompt: (prompt: string) => void;
   setImage: (image: ImageAttachment | null) => void;
   setCode: (code: string) => void;
   generate: () => Promise<void>;
   cancel: () => void;
   resetCode: () => void;
+  loadSaved: (generation: SavedGeneration) => void;
 }
 
 let controller: AbortController | null = null;
@@ -34,6 +43,8 @@ export const usePlayground = create<PlaygroundState>((set, get) => ({
   generatedCode: "",
   issues: [],
   error: null,
+  activeId: null,
+  savedCode: "",
 
   setPrompt: (prompt) => set({ prompt }),
   setImage: (image) => set({ image }),
@@ -60,6 +71,8 @@ export const usePlayground = create<PlaygroundState>((set, get) => ({
       generatedCode: "",
       issues: [],
       error: null,
+      activeId: null,
+      savedCode: "",
     });
 
     try {
@@ -123,5 +136,23 @@ export const usePlayground = create<PlaygroundState>((set, get) => ({
     if (generatedCode) {
       set({ code: generatedCode, issues: validateComponent(generatedCode) });
     }
+  },
+
+  loadSaved: (g) => {
+    controller?.abort();
+    controller = null;
+
+    set({
+      prompt: g.prompt,
+      image: null, 
+      status: "idle",
+      raw: "",
+      code: g.code,
+      generatedCode: g.code,
+      issues: validateComponent(g.code),
+      error: null,
+      activeId: g.id,
+      savedCode: g.code,
+    });
   },
 }));

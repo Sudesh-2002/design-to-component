@@ -13,6 +13,8 @@ import {
 import type { CodeEditorInstance } from "@/components/panels/CodeEditor";
 import { usePlayground } from "@/store/playground";
 import { ExportMenu } from "@/components/panels/ExportMenu";
+import { SaveButton } from "@/components/panels/SaveButton";
+import { useHistory } from "@/store/history";
 
 const CodeEditor = dynamic(
   () => import("@/components/panels/CodeEditor").then((m) => m.CodeEditor),
@@ -36,6 +38,7 @@ export function CodePanel() {
   const issues = usePlayground((s) => s.issues);
   const setCode = usePlayground((s) => s.setCode);
   const resetCode = usePlayground((s) => s.resetCode);
+  const saveError = useHistory((s) => s.saveError);
 
   const editorRef = useRef<CodeEditorInstance | null>(null);
   const [copied, setCopied] = useState(false);
@@ -102,6 +105,7 @@ export function CodePanel() {
             )}
             {copied ? "Copied" : "Copy"}
           </button>
+          <SaveButton disabled={!hasCode || isGenerating} /> {/* Step 8 */}
           <ExportMenu
             code={code}
             disabled={!hasCode || isGenerating}
@@ -113,6 +117,12 @@ export function CodePanel() {
       {status === "error" && error && (
         <p className="rounded-lg border border-red-900 bg-red-950/50 p-3 text-sm text-red-300">
           {error}
+        </p>
+      )}
+
+      {saveError && (
+        <p className="rounded-lg border border-red-900 bg-red-950/50 p-3 text-sm text-red-300">
+          Couldn&apos;t save: {saveError}
         </p>
       )}
 
