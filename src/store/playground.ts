@@ -11,6 +11,7 @@ interface PlaygroundState {
   status: GenerationStatus;
   raw: string;
   code: string;
+  generatedCode: string;
   issues: CodeIssue[];
   error: string | null;
 
@@ -19,6 +20,7 @@ interface PlaygroundState {
   setCode: (code: string) => void;
   generate: () => Promise<void>;
   cancel: () => void;
+  resetCode: () => void;
 }
 
 let controller: AbortController | null = null;
@@ -29,12 +31,20 @@ export const usePlayground = create<PlaygroundState>((set, get) => ({
   status: "idle",
   raw: "",
   code: "",
+  generatedCode: "",
   issues: [],
   error: null,
 
   setPrompt: (prompt) => set({ prompt }),
   setImage: (image) => set({ image }),
-  setCode: (code) => set({ code, issues: validateComponent(code) }),
+
+  setCode: (code) =>
+    set((s) => ({
+      code,
+      issues: validateComponent(code),
+      error: null,
+      status: s.status === "error" ? "idle" : s.status,
+    })),
 
   generate: async () => {
     const { prompt, image } = get();
@@ -43,7 +53,14 @@ export const usePlayground = create<PlaygroundState>((set, get) => ({
     const current = new AbortController();
     controller = current;
 
-    set({ status: "loading", raw: "", code: "", issues: [], error: null });
+    set({
+      status: "loading",
+      raw: "",
+      code: "",
+      generatedCode: "",
+      issues: [],
+      error: null,
+    });
 
     try {
       await streamGeneration({
@@ -51,7 +68,7 @@ export const usePlayground = create<PlaygroundState>((set, get) => ({
         image: image?.dataUrl,
         signal: current.signal,
         onChunk: (chunk) => {
-          if (controller !== current) return; // superseded by a newer request
+          if (controller !== current) return;
           const raw = get().raw + chunk;
           set({ status: "streaming", raw, code: extractCode(raw).code });
         },
@@ -72,6 +89,7 @@ export const usePlayground = create<PlaygroundState>((set, get) => ({
       set({
         status: "done",
         code: result.code,
+        generatedCode: result.code,
         issues: validateComponent(result.code, {
           truncated: result.fenced && !result.closed,
         }),
@@ -83,6 +101,7 @@ export const usePlayground = create<PlaygroundState>((set, get) => ({
         const { code } = get();
         set({
           status: "idle",
+          generatedCode: code,
           issues: code ? validateComponent(code, { truncated: true }) : [],
         });
         return;
@@ -98,4 +117,11 @@ export const usePlayground = create<PlaygroundState>((set, get) => ({
   },
 
   cancel: () => controller?.abort(),
+
+  resetCode: () => {
+    const { generatedCode } = get();
+    if (generatedCode) {
+      set({ code: generatedCode, issues: validateComponent(generatedCode) });
+    }
+  },
 }));
