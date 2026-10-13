@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { AuthListener } from "@/components/layout/AuthListener";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,6 +19,7 @@ export default function RootLayout({
       <body
         className={`${inter.className} flex min-h-screen flex-col bg-neutral-950 text-neutral-100 antialiased`}
       >
+        <AuthListener />
         {children}
       </body>
     </html>

@@ -1,4 +1,5 @@
 import { Header } from "@/components/layout/Header";
+import { HistoryDrawer } from "@/components/layout/HistoryDrawer";
 import { Workspace } from "@/components/layout/Workspace";
 
 export default function Home() {
@@ -6,6 +7,7 @@ export default function Home() {
     <>
       <Header />
       <Workspace />
+      <HistoryDrawer />
     </>
   );
 }
