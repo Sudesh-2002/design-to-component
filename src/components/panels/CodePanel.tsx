@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { CodeEditorInstance } from "@/components/panels/CodeEditor";
 import { usePlayground } from "@/store/playground";
+import { ExportMenu } from "@/components/panels/ExportMenu";
 
 const CodeEditor = dynamic(
   () => import("@/components/panels/CodeEditor").then((m) => m.CodeEditor),
@@ -101,6 +102,11 @@ export function CodePanel() {
             )}
             {copied ? "Copied" : "Copy"}
           </button>
+          <ExportMenu
+            code={code}
+            disabled={!hasCode || isGenerating}
+            hasErrors={issues.some((i) => i.level === "error")}
+          />
         </div>
       </div>
 
