@@ -2,7 +2,7 @@
 
 Turn a screenshot or a text description into a live, editable React + Tailwind component.
 
-**Live demo:** [your-app.vercel.app](https://your-app.vercel.app)
+**Live demo:** [your-app.vercel.app](design-to-component.vercel.app)
 
 ## Features
 
