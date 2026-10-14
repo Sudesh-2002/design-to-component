@@ -1,7 +1,3 @@
-/**
- * Document rendered inside the sandboxed iframe (via srcDoc).
- * Versions are pinned: never use @latest for scripts that run in the preview.
- */
 export const PREVIEW_HTML = `<!doctype html>
 <html lang="en">
 <head>
@@ -39,6 +35,48 @@ export const PREVIEW_HTML = `<!doctype html>
     return;
   }
 
+  // Stops runaway loops (while (true) and friends) before they freeze the page
+  var LOOP_LIMIT = 3000000;
+  var loopCount = 0;
+  var loopResetQueued = false;
+
+  window.__loopGuard = function () {
+    loopCount += 1;
+    if (!loopResetQueued) {
+      loopResetQueued = true;
+      // Timers only fire between tasks, so this counts iterations per synchronous run
+      setTimeout(function () {
+        loopCount = 0;
+        loopResetQueued = false;
+      }, 0);
+    }
+    if (loopCount > LOOP_LIMIT) {
+      loopCount = 0;
+      throw new Error("Possible infinite loop: a loop ran more than 3 million iterations without yielding, so it was stopped.");
+    }
+  };
+
+  Babel.registerPlugin("loop-guard", function (babel) {
+    var t = babel.types;
+    return {
+      visitor: {
+        Loop: function (path) {
+          if (path.node.__guarded) return;
+          path.node.__guarded = true;
+
+          var body = path.get("body");
+          if (!body.isBlockStatement()) {
+            body.replaceWith(t.blockStatement([body.node]));
+          }
+          path.get("body").unshiftContainer(
+            "body",
+            t.expressionStatement(t.callExpression(t.identifier("__loopGuard"), []))
+          );
+        }
+      }
+    };
+  });
+
   // Catches errors thrown while rendering the generated component
   class Boundary extends React.Component {
     constructor(props) {
@@ -61,7 +99,7 @@ export const PREVIEW_HTML = `<!doctype html>
       filename: "component.tsx",
       sourceType: "module",
       presets: [["typescript", { isTSX: true, allExtensions: true }], "react"],
-      plugins: ["transform-modules-commonjs"]
+      plugins: ["loop-guard", "transform-modules-commonjs"]
     }).code;
   }
 
@@ -124,6 +162,11 @@ export const PREVIEW_HTML = `<!doctype html>
   });
 
   send({ type: "ready" });
+
+  // Heartbeat: lets the parent restart this frame if it stops responding
+  setInterval(function () {
+    send({ type: "alive" });
+  }, 1000);
 })();
 </script>
 </body>

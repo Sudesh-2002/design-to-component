@@ -4,6 +4,7 @@ import { isFromIframe } from "./preview-protocol";
 describe("isFromIframe", () => {
   it("accepts valid messages", () => {
     expect(isFromIframe({ type: "ready" })).toBe(true);
+    expect(isFromIframe({ type: "alive" })).toBe(true);
     expect(isFromIframe({ type: "rendered", id: 3 })).toBe(true);
     expect(
       isFromIframe({ type: "error", id: 1, phase: "compile", message: "x" })

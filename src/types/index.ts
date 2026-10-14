@@ -30,6 +30,7 @@ export type PreviewToIframe = { type: "render"; id: number; code: string };
 
 export type PreviewFromIframe =
   | { type: "ready" }
+  | { type: "alive" }
   | { type: "rendered"; id: number }
   | {
       type: "error";
