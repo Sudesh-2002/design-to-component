@@ -11,10 +11,11 @@ import {
   XCircle,
 } from "lucide-react";
 import type { CodeEditorInstance } from "@/components/panels/CodeEditor";
-import { usePlayground } from "@/store/playground";
 import { ExportMenu } from "@/components/panels/ExportMenu";
 import { SaveButton } from "@/components/panels/SaveButton";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useHistory } from "@/store/history";
+import { usePlayground } from "@/store/playground";
 
 const CodeEditor = dynamic(
   () => import("@/components/panels/CodeEditor").then((m) => m.CodeEditor),
@@ -42,6 +43,8 @@ export function CodePanel() {
 
   const editorRef = useRef<CodeEditorInstance | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const plainEditor = useMediaQuery("(max-width: 767px), (pointer: coarse)");
 
   const isGenerating = status === "loading" || status === "streaming";
   const hasCode = code.trim().length > 0;
@@ -75,7 +78,7 @@ export function CodePanel() {
           <button
             type="button"
             onClick={format}
-            disabled={!hasCode || isGenerating}
+            disabled={!hasCode || isGenerating || plainEditor}
             title="Format (Ctrl+S)"
             className={toolbarButton}
           >
@@ -105,7 +108,7 @@ export function CodePanel() {
             )}
             {copied ? "Copied" : "Copy"}
           </button>
-          <SaveButton disabled={!hasCode || isGenerating} /> {/* Step 8 */}
+          <SaveButton disabled={!hasCode || isGenerating} />
           <ExportMenu
             code={code}
             disabled={!hasCode || isGenerating}
@@ -149,16 +152,30 @@ export function CodePanel() {
       )}
 
       <div className="relative min-h-[240px] flex-1 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
-        <CodeEditor
-          value={code}
-          readOnly={isGenerating}
-          onChange={setCode}
-          onReady={(editor) => {
-            editorRef.current = editor;
-          }}
-        />
+        {plainEditor ? (
+          <textarea
+            value={code}
+            readOnly={isGenerating}
+            onChange={(e) => setCode(e.target.value)}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            aria-label="Component code"
+            placeholder="Generated code appears here. You can also paste your own component (it needs a default export)."
+            className="absolute inset-0 h-full w-full resize-none bg-transparent p-3 font-mono text-xs leading-relaxed text-neutral-200 outline-none placeholder:text-neutral-600"
+          />
+        ) : (
+          <CodeEditor
+            value={code}
+            readOnly={isGenerating}
+            onChange={setCode}
+            onReady={(editor) => {
+              editorRef.current = editor;
+            }}
+          />
+        )}
 
-        {!hasCode && !isGenerating && (
+        {!hasCode && !isGenerating && !plainEditor && (
           <p className="pointer-events-none absolute left-14 right-4 top-3 text-sm text-neutral-600">
             Generated code appears here. You can also paste your own component
             (it needs a default export).

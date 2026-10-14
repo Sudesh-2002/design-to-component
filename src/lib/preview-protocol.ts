@@ -4,8 +4,9 @@ export function isFromIframe(data: unknown): data is PreviewFromIframe {
   if (!data || typeof data !== "object") return false;
   const d = data as Record<string, unknown>;
 
-  switch (d.type) {
+    switch (d.type) {
     case "ready":
+    case "alive":
       return true;
     case "rendered":
       return typeof d.id === "number";

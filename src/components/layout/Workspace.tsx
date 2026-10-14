@@ -5,6 +5,7 @@ import { InputPanel } from "@/components/panels/InputPanel";
 import { CodePanel } from "@/components/panels/CodePanel";
 import { PreviewPanel } from "@/components/panels/PreviewPanel";
 import { usePlayground } from "@/store/playground";
+import { PanelBoundary } from "@/components/layout/PanelBoundary";
 
 export function Workspace() {
   const prompt = usePlayground((s) => s.prompt);
@@ -20,23 +21,29 @@ export function Workspace() {
   return (
     <main className="grid flex-1 grid-cols-1 gap-3 p-3 lg:h-[calc(100vh-3.5rem)] lg:grid-cols-[340px_1fr_1fr] lg:grid-rows-1">
       <Panel title="Input">
-        <InputPanel
-          prompt={prompt}
-          image={image}
-          isGenerating={isGenerating}
-          onPromptChange={setPrompt}
-          onImageChange={setImage}
-          onGenerate={generate}
-          onCancel={cancel}
-        />
+        <PanelBoundary name="Input">
+          <InputPanel
+            prompt={prompt}
+            image={image}
+            isGenerating={isGenerating}
+            onPromptChange={setPrompt}
+            onImageChange={setImage}
+            onGenerate={generate}
+            onCancel={cancel}
+          />
+        </PanelBoundary>
       </Panel>
 
       <Panel title="Preview">
-        <PreviewPanel />
+        <PanelBoundary name="Preview">
+          <PreviewPanel />
+        </PanelBoundary>
       </Panel>
 
       <Panel title="Code">
-        <CodePanel />
+        <PanelBoundary name="Code">
+          <CodePanel />
+        </PanelBoundary>
       </Panel>
     </main>
   );
