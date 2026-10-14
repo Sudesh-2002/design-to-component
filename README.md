@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Design → Component Playground
 
-## Getting Started
+Turn a screenshot or a text description into a live, editable React + Tailwind component.
 
-First, run the development server:
+**Live demo:** [your-app.vercel.app](https://your-app.vercel.app)
+
+![Screenshot](docs/screenshot.png)
+
+## Features
+
+- Describe a UI, drop in a screenshot, or paste one with Ctrl+V
+- Vision model streams the component code as it's generated
+- Live preview in a sandboxed iframe with mobile / tablet / full-width views
+- Monaco editor: edits hot-update the preview
+- Export as a single file, a runnable Vite project (.zip), or open in StackBlitz
+- GitHub sign-in and saved history (Supabase, row-level security)
+- Per-user and per-IP rate limiting (Upstash Redis)
+
+## Tech
+
+Next.js (App Router) · TypeScript · Tailwind · Zustand · Monaco · Groq (vision) ·
+Supabase (auth + Postgres) · Upstash Redis · Vitest
+
+## How it works
+
+1. The browser downsizes the screenshot and POSTs it with the prompt to `/api/generate`.
+2. The route checks the rate limit, calls the vision model, and streams the text back.
+3. The client extracts the first code block from the stream and validates it.
+4. The code is sent via `postMessage` to a sandboxed iframe (no `allow-same-origin`),
+   compiled with Babel, and rendered behind an error boundary with loop guards.
+
+### Security notes
+
+- Generated code runs in an opaque-origin iframe with a restrictive CSP, so it can't
+  reach the app's DOM, cookies, or storage, and can't make network requests.
+- Supabase row-level security enforces that users only access their own rows.
+- API keys stay server-side; only the Supabase anon key is public, by design.
+
+## Run locally
 
 ```bash
+npm install
+cp .env.example .env.local   # then fill in GROQ_API_KEY at minimum
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Supabase and Upstash are optional locally: without them the app runs with no sign-in,
+and rate limiting falls back to memory.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`npm run dev` · `npm test` · `npm run build` · `npm run lint`
 
-## Learn More
+## Limitations
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Only `react` is importable in generated components.
+- Saved history stores a thumbnail, not the original screenshot.
+- Free-tier AI limits apply.
