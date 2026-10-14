@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { groq, VISION_MODEL } from "@/lib/ai";
+import { getGroq, VISION_MODEL } from "@/lib/ai";
 import { IMAGE_ONLY_INSTRUCTION, SYSTEM_PROMPT } from "@/lib/prompts";
 import {
   LIMITS,
@@ -12,7 +12,6 @@ import {
 import { getUserIdFromRequest, isAuthAvailable } from "@/lib/supabase/server-auth";
 import type { GenerateRequest } from "@/types";
 
-export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MAX_PROMPT_LENGTH = 1000;
@@ -91,7 +90,7 @@ export async function POST(req: NextRequest) {
   const userText = prompt || IMAGE_ONLY_INSTRUCTION;
 
   try {
-    const completion = await groq.chat.completions.create(
+        const completion = await getGroq().chat.completions.create(
       {
         model: VISION_MODEL,
         stream: true,
