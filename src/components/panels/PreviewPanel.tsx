@@ -24,6 +24,8 @@ const VIEWPORTS: { id: Viewport; label: string; width: string; Icon: LucideIcon 
   { id: "full", label: "Full width", width: "100%", Icon: Monitor },
 ];
 
+const HANG_AFTER_MS = 5000;
+
 type ViewState =
   | { phase: "idle" | "rendering" | "ok" }
   | { phase: "error"; message: string };
@@ -35,20 +37,27 @@ export function PreviewPanel() {
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const idRef = useRef(0);
+  const lastBeatRef = useRef(0);
+  const lastSentRef = useRef("");
+  const blockedCodeRef = useRef<string | null>(null);
 
   const [ready, setReady] = useState(false);
   const [nonce, setNonce] = useState(0);
   const [viewport, setViewport] = useState<Viewport>("full");
   const [view, setView] = useState<ViewState>({ phase: "idle" });
 
-  // Messages from the iframe
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       if (e.source !== iframeRef.current?.contentWindow) return;
       if (!isFromIframe(e.data)) return;
       const msg = e.data;
 
+      if (msg.type === "alive") {
+        lastBeatRef.current = Date.now();
+        return;
+      }
       if (msg.type === "ready") {
+        lastBeatRef.current = Date.now();
         setReady(true);
         return;
       }
@@ -56,7 +65,7 @@ export function PreviewPanel() {
         setView({ phase: "error", message: msg.message });
         return;
       }
-      if (msg.id !== idRef.current) return; // reply to an outdated render
+      if (msg.id !== idRef.current) return;
 
       if (msg.type === "rendered") {
         setView((prev) => (prev.phase === "error" ? prev : { phase: "ok" }));
@@ -69,12 +78,16 @@ export function PreviewPanel() {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  // Send code once it settles (not while streaming)
   useEffect(() => {
+    if (blockedCodeRef.current !== null && blockedCodeRef.current !== code) {
+      blockedCodeRef.current = null;
+    }
     if (!ready || isGenerating || !code.trim()) return;
+    if (blockedCodeRef.current === code) return;
 
     const timer = setTimeout(() => {
       const id = ++idRef.current;
+      lastSentRef.current = code;
       setView({ phase: "rendering" });
       const message: PreviewToIframe = { type: "render", id, code };
       iframeRef.current?.contentWindow?.postMessage(message, "*");
@@ -83,7 +96,37 @@ export function PreviewPanel() {
     return () => clearTimeout(timer);
   }, [code, ready, isGenerating]);
 
+  useEffect(() => {
+    if (!ready) return;
+    lastBeatRef.current = Date.now();
+
+    function onVisibility() {
+      if (!document.hidden) lastBeatRef.current = Date.now();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+
+    const timer = setInterval(() => {
+      if (document.hidden) return;
+      if (Date.now() - lastBeatRef.current < HANG_AFTER_MS) return;
+
+      blockedCodeRef.current = lastSentRef.current;
+      setReady(false);
+      setNonce((n) => n + 1);
+      setView({
+        phase: "error",
+        message:
+          "The preview stopped responding and was restarted. The code may contain an infinite loop. Edit it to try again.",
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [ready]);
+
   function refresh() {
+    blockedCodeRef.current = null;
     setReady(false);
     setView({ phase: "idle" });
     setNonce((n) => n + 1);
