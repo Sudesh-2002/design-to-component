@@ -4,8 +4,6 @@ Turn a screenshot or a text description into a live, editable React + Tailwind c
 
 **Live demo:** [your-app.vercel.app](https://your-app.vercel.app)
 
-![Screenshot](docs/screenshot.png)
-
 ## Features
 
 - Describe a UI, drop in a screenshot, or paste one with Ctrl+V
