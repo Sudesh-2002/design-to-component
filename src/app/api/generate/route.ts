@@ -1,23 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
 import { groq, VISION_MODEL } from "@/lib/ai";
 import { IMAGE_ONLY_INSTRUCTION, SYSTEM_PROMPT } from "@/lib/prompts";
+import {
+  LIMITS,
+  WINDOW_MINUTES,
+  checkRateLimit,
+  formatWait,
+  type Identity,
+  type LimitResult,
+} from "@/lib/rate-limit";
+import { getUserIdFromRequest, isAuthAvailable } from "@/lib/supabase/server-auth";
 import type { GenerateRequest } from "@/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MAX_PROMPT_LENGTH = 1000;
-// Groq limits base64-encoded images to 4 MB
 const MAX_IMAGE_CHARS = 4 * 1024 * 1024;
+const MAX_BODY_BYTES = 4.5 * 1024 * 1024;
 const IMAGE_PREFIX = /^data:image\/(jpeg|png|webp);base64,/;
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
+function clientIp(req: NextRequest): string {
+  const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwarded || req.headers.get("x-real-ip") || "unknown";
+}
+
+function limitMessage(kind: Identity["kind"], result: LimitResult) {
+  const base = `Rate limit reached (${LIMITS[kind].requests} generations per ${WINDOW_MINUTES} minutes). Try again in ${formatWait(result.retryAfterSec)}.`;
+  return kind === "guest" && isAuthAvailable
+    ? `${base} Sign in for a higher limit.`
+    : base;
+}
+
 export async function POST(req: NextRequest) {
   if (!process.env.GROQ_API_KEY) {
-    return jsonError("Server is missing GROQ_API_KEY.", 500);
+    console.error("[generate] GROQ_API_KEY is not set.");
+    return jsonError("The AI service isn't configured on the server yet.", 500);
+  }
+
+  const contentLength = Number(req.headers.get("content-length") ?? 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    return jsonError("Request is too large. Try a smaller screenshot.", 413);
+  }
+
+  const userId = await getUserIdFromRequest(req);
+  const identity: Identity = userId
+    ? { kind: "user", id: userId }
+    : { kind: "guest", id: clientIp(req) };
+
+  const limit = await checkRateLimit(identity);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      {
+        error: limitMessage(identity.kind, limit),
+        retryAfter: limit.retryAfterSec,
+      },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } }
+    );
   }
 
   let body: GenerateRequest;
@@ -48,7 +91,6 @@ export async function POST(req: NextRequest) {
   const userText = prompt || IMAGE_ONLY_INSTRUCTION;
 
   try {
-    // Created before returning so provider errors surface as proper HTTP statuses
     const completion = await groq.chat.completions.create(
       {
         model: VISION_MODEL,
@@ -104,10 +146,14 @@ export async function POST(req: NextRequest) {
         : 500;
 
     if (status === 429) {
-      return jsonError("Rate limit reached. Wait a moment and try again.", 429);
+      return jsonError(
+        "The AI provider is busy right now. Wait a moment and try again.",
+        429
+      );
     }
     if (status === 401) {
-      return jsonError("Invalid Groq API key.", 500);
+      console.error("[generate] Groq rejected the API key.");
+      return jsonError("The AI service isn't configured correctly.", 500);
     }
     console.error("[generate] provider error:", err);
     return jsonError("The AI provider failed. Please try again.", 502);
