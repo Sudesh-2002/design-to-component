@@ -6,6 +6,7 @@ import { ImageDropzone } from "@/components/panels/ImageDropzone";
 import { usePasteImage } from "@/hooks/usePasteImage";
 import { processImage, validateImageFile } from "@/lib/image";
 import type { ImageAttachment } from "@/types";
+import { RefineBox } from "@/components/panels/RefineBox";
 
 const MAX_PROMPT_LENGTH = 1000;
 
@@ -114,6 +115,7 @@ export function InputPanel({
           Generate component
         </button>
       )}
+      <RefineBox />
     </div>
   );
 }
