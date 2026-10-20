@@ -37,6 +37,7 @@ async function getAccessToken(): Promise<string | null> {
 export async function streamGeneration({
   prompt,
   image,
+  currentCode,
   signal,
   onChunk,
 }: StreamOptions): Promise<void> {
@@ -56,7 +57,7 @@ export async function streamGeneration({
     res = await fetch("/api/generate", {
       method: "POST",
       headers,
-      body: JSON.stringify({ prompt, image }),
+      body: JSON.stringify({ prompt, image, currentCode }),
       signal,
     });
   } catch (err) {
