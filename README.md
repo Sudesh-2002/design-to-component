@@ -67,6 +67,7 @@ flowchart LR
     I -- edits --> H
 ```
 
+
 1. The browser downsizes the screenshot (max 1568 px, JPEG) and POSTs it with the prompt.
 2. The API route verifies the user (if signed in), applies the rate limit, and streams the model's reply.
 3. The client pulls the **first fenced code block** out of the stream, even while the fence is half-received, and validates it.
@@ -216,5 +217,4 @@ supabase/schema.sql             # Table + RLS policies
 <div align="center">
 
 If this project helped you, consider giving it a ⭐
-
 </div>
