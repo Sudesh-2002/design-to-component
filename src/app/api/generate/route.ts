@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGroq, VISION_MODEL } from "@/lib/ai";
-import { IMAGE_ONLY_INSTRUCTION, SYSTEM_PROMPT } from "@/lib/prompts";
+import {
+  ITERATE_SYSTEM_PROMPT,
+  IMAGE_ONLY_INSTRUCTION,
+  SYSTEM_PROMPT,
+  buildIterateMessage,
+} from "@/lib/prompts";
 import {
   LIMITS,
   WINDOW_MINUTES,
@@ -15,6 +20,7 @@ import type { GenerateRequest } from "@/types";
 export const maxDuration = 60;
 
 const MAX_PROMPT_LENGTH = 1000;
+const MAX_CURRENT_CODE_CHARS = 30_000;
 const MAX_IMAGE_CHARS = 4 * 1024 * 1024;
 const MAX_BODY_BYTES = 4.5 * 1024 * 1024;
 const IMAGE_PREFIX = /^data:image\/(jpeg|png|webp);base64,/;
@@ -71,8 +77,23 @@ export async function POST(req: NextRequest) {
 
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
   const image = typeof body.image === "string" ? body.image : undefined;
+  const currentCode =
+    typeof body.currentCode === "string" && body.currentCode.trim()
+      ? body.currentCode
+      : undefined;
+  const iterating = currentCode !== undefined;
 
-  if (!prompt && !image) {
+  if (iterating) {
+    if (!prompt) {
+      return jsonError("Describe the change you want to make.", 400);
+    }
+    if (currentCode.length > MAX_CURRENT_CODE_CHARS) {
+      return jsonError(
+        `This component is too large to modify (limit ${MAX_CURRENT_CODE_CHARS.toLocaleString("en-US")} characters).`,
+        413
+      );
+    }
+  } else if (!prompt && !image) {
     return jsonError("Provide a description, an image, or both.", 400);
   }
   if (prompt.length > MAX_PROMPT_LENGTH) {
@@ -87,17 +108,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const userText = prompt || IMAGE_ONLY_INSTRUCTION;
+  const userText = iterating
+    ? buildIterateMessage(currentCode, prompt)
+    : prompt || IMAGE_ONLY_INSTRUCTION;
 
   try {
-        const completion = await getGroq().chat.completions.create(
+    const completion = await getGroq().chat.completions.create(
       {
         model: VISION_MODEL,
         stream: true,
         temperature: 0.3,
-        max_completion_tokens: 4096,
+        max_completion_tokens: 8192,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "system",
+            content: iterating ? ITERATE_SYSTEM_PROMPT : SYSTEM_PROMPT,
+          },
           {
             role: "user",
             content: image
@@ -139,11 +165,22 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
+    if (req.signal.aborted) {
+      return new Response(null, { status: 499 });
+    }
+
     const status =
       typeof err === "object" && err && "status" in err
         ? Number((err as { status: unknown }).status)
         : 500;
 
+    if (status === 404) {
+      console.error("[generate] Model not found:", VISION_MODEL);
+      return jsonError(
+        "The configured AI model isn't available. Check GROQ_VISION_MODEL on the server.",
+        500
+      );
+    }
     if (status === 429) {
       return jsonError(
         "The AI provider is busy right now. Wait a moment and try again.",
