@@ -15,6 +15,7 @@ export interface CodeIssue {
 export interface GenerateRequest {
   prompt: string;
   image?: string;
+  currentCode?: string;
 }
 
 export interface ImageAttachment {
