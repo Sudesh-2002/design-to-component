@@ -61,8 +61,10 @@ export function ExportMenu({ code, disabled, hasErrors }: ExportMenuProps) {
   const [error, setError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  const isOpen = open && !disabled;
+
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
 
     function onMouseDown(e: MouseEvent) {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
@@ -77,11 +79,7 @@ export function ExportMenu({ code, disabled, hasErrors }: ExportMenuProps) {
       document.removeEventListener("mousedown", onMouseDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open]);
-
-  useEffect(() => {
-    if (disabled) setOpen(false);
-  }, [disabled]);
+  }, [isOpen]);
 
   function run(action: () => void) {
     setError(null);
@@ -103,7 +101,7 @@ export function ExportMenu({ code, disabled, hasErrors }: ExportMenuProps) {
         type="button"
         disabled={disabled}
         aria-haspopup="menu"
-        aria-expanded={open}
+        aria-expanded={isOpen}
         onClick={() => setOpen((o) => !o)}
         className={toolbarButton}
       >
@@ -116,7 +114,7 @@ export function ExportMenu({ code, disabled, hasErrors }: ExportMenuProps) {
         <ChevronDown className="h-3 w-3" />
       </button>
 
-      {open && (
+      {isOpen && (
         <div
           role="menu"
           className="absolute right-0 top-full mt-1 w-64 rounded-lg border border-neutral-800 bg-neutral-900 p-1 shadow-xl"
