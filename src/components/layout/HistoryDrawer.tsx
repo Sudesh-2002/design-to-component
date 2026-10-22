@@ -17,6 +17,10 @@ function formatDate(iso: string) {
 
 export function HistoryDrawer() {
   const open = useHistory((s) => s.open);
+  return open ? <DrawerContent /> : null;
+}
+
+function DrawerContent() {
   const items = useHistory((s) => s.items);
   const loading = useHistory((s) => s.loading);
   const listError = useHistory((s) => s.listError);
@@ -31,22 +35,16 @@ export function HistoryDrawer() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open && userId) void refresh();
-  }, [open, userId, refresh]);
+    if (userId) void refresh();
+  }, [userId, refresh]);
 
   useEffect(() => {
-    if (!open) {
-      setConfirmId(null);
-      return;
-    }
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, setOpen]);
-
-  if (!open) return null;
+  }, [setOpen]);
 
   function openItem(item: SavedGeneration) {
     const { code, savedCode } = usePlayground.getState();
